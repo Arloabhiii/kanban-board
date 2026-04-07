@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Check, X, Zap, Flame, Trophy } from "lucide-react";
+import { Plus, Check, X, Zap, Trophy, Pencil, Trash2 } from "lucide-react";
 import { useXp } from "./XpContext";
 
 interface Habit {
@@ -19,6 +19,7 @@ const defaultHabits: Habit[] = [
 ];
 
 const dayLabels = ["M", "T", "W", "T", "F", "S", "S"];
+const ICON_OPTIONS = ["⌨️", "🌿", "📖", "📵", "🏋️", "⚡", "🎯", "🧠", "💎", "🌟", "🎮", "🎵", "🍎", "💧", "🧘", "🎨"];
 
 const streakEmoji = (streak: number) => {
   if (streak >= 7) return "🐐";
@@ -32,6 +33,10 @@ export default function HabitTracker() {
   const [habits, setHabits] = useState<Habit[]>(defaultHabits);
   const [newHabit, setNewHabit] = useState("");
   const [animatingCell, setAnimatingCell] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const [showIconPicker, setShowIconPicker] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const today = new Date().getDay() || 7;
 
   const toggleDay = (habitId: string, day: number) => {
@@ -56,6 +61,23 @@ export default function HabitTracker() {
     }));
   };
 
+  const startEdit = (habit: Habit) => {
+    setEditingId(habit.id);
+    setEditValue(habit.name);
+  };
+
+  const saveEdit = (id: string) => {
+    if (editValue.trim()) {
+      setHabits(prev => prev.map(h => h.id === id ? { ...h, name: editValue.trim() } : h));
+    }
+    setEditingId(null);
+  };
+
+  const changeIcon = (id: string, icon: string) => {
+    setHabits(prev => prev.map(h => h.id === id ? { ...h, icon } : h));
+    setShowIconPicker(null);
+  };
+
   const addHabit = () => {
     if (!newHabit.trim()) return;
     const icons = ["⚡", "🎯", "🧠", "💎", "🌟", "🎮", "🎵", "🍎"];
@@ -70,7 +92,10 @@ export default function HabitTracker() {
     addXp(5, "new habit added 🌱");
   };
 
-  const removeHabit = (id: string) => setHabits(prev => prev.filter(h => h.id !== id));
+  const removeHabit = (id: string) => {
+    setHabits(prev => prev.filter(h => h.id !== id));
+    setConfirmDelete(null);
+  };
 
   const totalCompletion = habits.length > 0
     ? Math.round(habits.reduce((sum, h) => sum + h.completedDays.filter(d => d <= today).length, 0) / (habits.length * today) * 100)
@@ -90,9 +115,8 @@ export default function HabitTracker() {
           <Zap className="w-3.5 h-3.5 text-cyber-green animate-pulse-glow" />
         </div>
       </div>
-      <p className="text-[9px] text-muted-foreground mb-3 italic">consistency is the main character energy fr</p>
+      <p className="text-[9px] text-muted-foreground mb-3 italic">tap to check, click name to edit, long press icon to swap ✨</p>
 
-      {/* Progress bar */}
       <div className="w-full h-1 bg-muted rounded-full overflow-hidden mb-3">
         <div
           className="h-full bg-gradient-to-r from-cyber-green to-primary rounded-full transition-all duration-1000 ease-out"
@@ -113,6 +137,7 @@ export default function HabitTracker() {
             ))}
           </div>
           <span className="w-10 text-[9px] text-muted-foreground text-right">🔥</span>
+          <span className="w-12" />
         </div>
 
         {habits.map((habit, idx) => (
@@ -121,8 +146,52 @@ export default function HabitTracker() {
             className="group flex items-center gap-2 bg-muted/30 rounded-lg px-2 py-1.5 hover:bg-muted/50 transition-all duration-200 hover-scale animate-slide-up"
             style={{ animationDelay: `${idx * 0.05}s` }}
           >
-            <span className="text-sm">{habit.icon}</span>
-            <span className="w-24 text-[11px] text-foreground truncate">{habit.name}</span>
+            {/* Icon - click to pick */}
+            <div className="relative">
+              <button
+                onClick={() => setShowIconPicker(showIconPicker === habit.id ? null : habit.id)}
+                className="text-sm hover:scale-125 transition-transform click-shrink"
+                title="change icon"
+              >
+                {habit.icon}
+              </button>
+              {showIconPicker === habit.id && (
+                <div className="absolute top-7 left-0 z-30 bg-card border border-border rounded-lg p-2 grid grid-cols-4 gap-1 shadow-xl animate-scale-in min-w-[120px]">
+                  {ICON_OPTIONS.map(icon => (
+                    <button
+                      key={icon}
+                      onClick={() => changeIcon(habit.id, icon)}
+                      className="text-sm p-1 rounded hover:bg-muted transition-all click-shrink"
+                    >
+                      {icon}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Name - click to edit */}
+            {editingId === habit.id ? (
+              <input
+                autoFocus
+                value={editValue}
+                onChange={e => setEditValue(e.target.value)}
+                onBlur={() => saveEdit(habit.id)}
+                onKeyDown={e => { if (e.key === "Enter") saveEdit(habit.id); if (e.key === "Escape") setEditingId(null); }}
+                className="w-24 bg-muted/50 border border-primary/50 rounded px-1 py-0.5 text-[11px] text-foreground focus:outline-none"
+              />
+            ) : (
+              <button
+                onClick={() => startEdit(habit)}
+                className="w-24 text-[11px] text-foreground truncate text-left hover:text-primary transition-colors group/name flex items-center gap-1"
+                title="click to rename"
+              >
+                <span className="truncate">{habit.name}</span>
+                <Pencil className="w-2.5 h-2.5 opacity-0 group-hover/name:opacity-60 transition-opacity shrink-0" />
+              </button>
+            )}
+
+            {/* Day checkboxes */}
             <div className="flex gap-1 flex-1 justify-end">
               {dayLabels.map((_, i) => {
                 const day = i + 1;
@@ -149,13 +218,34 @@ export default function HabitTracker() {
                 );
               })}
             </div>
+
+            {/* Streak */}
             <span className="w-10 text-[10px] text-right font-mono flex items-center justify-end gap-0.5">
               <span>{streakEmoji(habit.streak)}</span>
               <span className="text-cyber-green">{habit.streak}</span>
             </span>
-            <button onClick={() => removeHabit(habit.id)} className="opacity-0 group-hover:opacity-100 transition-opacity click-shrink">
-              <X className="w-3 h-3 text-destructive" />
-            </button>
+
+            {/* Actions */}
+            <div className="w-12 flex items-center justify-end gap-1">
+              {confirmDelete === habit.id ? (
+                <div className="flex gap-0.5 animate-scale-in">
+                  <button onClick={() => removeHabit(habit.id)} className="p-0.5 bg-destructive/20 rounded click-shrink" title="confirm delete">
+                    <Check className="w-3 h-3 text-destructive" />
+                  </button>
+                  <button onClick={() => setConfirmDelete(null)} className="p-0.5 bg-muted rounded click-shrink">
+                    <X className="w-3 h-3 text-muted-foreground" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setConfirmDelete(habit.id)}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity click-shrink p-0.5"
+                  title="delete habit"
+                >
+                  <Trash2 className="w-3 h-3 text-destructive" />
+                </button>
+              )}
+            </div>
           </div>
         ))}
       </div>

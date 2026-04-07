@@ -3,6 +3,7 @@ import HabitTracker from "@/components/HabitTracker";
 import PomodoroTimer from "@/components/PomodoroTimer";
 import CyberCalendar from "@/components/CyberCalendar";
 import AiChat from "@/components/AiChat";
+import TherapistChat from "@/components/TherapistChat";
 import SystemStatus from "@/components/SystemStatus";
 import { XpProvider } from "@/components/XpContext";
 import { Layout, Brain, Sparkles } from "lucide-react";
@@ -51,11 +52,16 @@ export default function Index() {
             </div>
 
             {/* Bottom row */}
-            <div className="lg:col-span-7 animate-slide-up" style={{ animationDelay: "0.4s" }}>
+            <div className="lg:col-span-12 animate-slide-up" style={{ animationDelay: "0.4s" }}>
               <HabitTracker />
             </div>
-            <div className="lg:col-span-5 h-[420px] animate-slide-up" style={{ animationDelay: "0.5s" }}>
+
+            {/* Chat row */}
+            <div className="lg:col-span-6 h-[450px] animate-slide-up" style={{ animationDelay: "0.5s" }}>
               <AiChat />
+            </div>
+            <div className="lg:col-span-6 h-[450px] animate-slide-up" style={{ animationDelay: "0.6s" }}>
+              <TherapistChat />
             </div>
           </div>
         </div>
